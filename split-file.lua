@@ -81,13 +81,10 @@ local function main(directory)
 
     --split all the sections between chapters
     for i = 1, #chapters-1, 1 do
-        local start = chapters[i] and chapters[i].time
-        local finish = chapters[i+1] and chapters[i+1].time
-
         execute({
             input = file,
-            start = chapters[i] and chapters[i].time,
-            finish = chapters[i+1] and chapters[i+1].time,
+            start = chapters[i].time,
+            finish = chapters[i+1].time,
             metadata = {
                 title = chapters[i].title,
                 track = output_num,
