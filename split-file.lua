@@ -9,6 +9,9 @@ local mp = require "mp"
 local msg = require "mp.msg"
 local utils = require "mp.utils"
 
+--this is the same windows platform test done in console.lua
+local test = {}
+local PLATFORM_WINDOWS = mp.get_property_native('options/vo-mmcss-profile', test) ~= test
 
 --a function to execute a system command
 --takes a table of arguments and an optional async callback function
@@ -58,7 +61,10 @@ local function main(directory)
         directory = directory..title.."/"
     end
     directory = mp.command_native({"expand-path", directory})
-    directory = utils.join_path(mp.get_property("working-directory", ""), directory)
+
+    --attempts to create the directory if it does not already exist
+    --ignores any errors caused by the directory already existing
+    execute(not PLATFORM_WINDOWS and {"mkdir", directory} or {"powershell", "-command", ("mkdir %q"):format(directory)})
 
     if not directory:find("[/\\]$") then directory = directory..'/' end
 
