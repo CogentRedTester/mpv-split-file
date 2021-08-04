@@ -52,8 +52,11 @@ local function main(directory)
     if not file then return msg.error("could not get currently playing file") end
     if not next(chapters) then return msg.error("no chapters found") end
 
-    --if the directory is not set, then save the files inside the directory of the currently playing file
-    if not directory then directory = file:match("^(.+[/\\])[^/\\]+$") or "" end
+    --if the directory is not set, then save the files inside a subdirectory adjacent to the currently playing file
+    if not directory then
+        directory = file:match("^(.+[/\\])[^/\\]+$") or ""
+        directory = directory..title.."/"
+    end
     directory = mp.command_native({"expand-path", directory})
     directory = utils.join_path(mp.get_property("working-directory", ""), directory)
 
