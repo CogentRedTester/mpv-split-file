@@ -9,7 +9,23 @@ local mp = require "mp"
 local msg = require "mp.msg"
 local utils = require "mp.utils"
 
-local function execute(o)
+
+--a function to execute a system command
+--takes a table of arguments and an optional async callback function
+local function execute(args, async)
+    msg.debug("executing command:", table.unpack(args))
+    local cmd_opts = {
+        name = "subprocess",
+        playback_only = false,
+        capture_stdout = true,
+        capture_stderr = true,
+        args = args
+    }
+    if not async then return mp.command_native(cmd_opts) end
+    return mp.command_native_async(cmd_opts, async)
+end
+
+local function run_split(o)
     local args = {"ffmpeg", "-y", "-i", o.input, "-ss", tostring(o.start), "-to", tostring(o.finish), "-c", "copy", "-map_chapters", "-1"}
 
     --dynamically insert all of the custom metadata
@@ -19,20 +35,10 @@ local function execute(o)
     end
     table.insert(args, o.output)
 
-    msg.debug(table.unpack(args))
-
-    local cmd = mp.command_native_async({
-        name = "subprocess",
-        playback_only = false,
-        capture_stdout = true,
-        capture_stderr = true,
-        args = args
-    }, function(_, result)
+    return execute(args, function(_, result)
         if result.status == 0 then return msg.info("Successfully split", o.output) end
-
         msg.error(string.format("Exit code %d: Failed to split file '%s'", result.status, o.output))
     end)
-    return cmd
 end
 
 local function main(directory)
@@ -67,7 +73,7 @@ local function main(directory)
 
     --split any parts of the file before the first chapter (if any exist)
     if chapters[1].time > 0 then
-        execute({
+        run_split({
             input = file,
             start = 0,
             finish = chapters[1].time,
@@ -81,7 +87,7 @@ local function main(directory)
 
     --split all the sections between chapters
     for i = 1, #chapters-1, 1 do
-        execute({
+        run_split({
             input = file,
             start = chapters[i].time,
             finish = chapters[i+1].time,
@@ -95,7 +101,7 @@ local function main(directory)
     end
 
     --split the part of the file after the last chapter
-    execute({
+    run_split({
         input = file,
         start = chapters[#chapters].time,
         finish = mp.get_property_number("duration", math.huge),
